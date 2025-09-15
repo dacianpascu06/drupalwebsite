@@ -1,0 +1,7 @@
+name: 'Appointment Validation'
+type: module
+description: 'Validates appointment timeslot against doctor working hours.'
+core_version_requirement: ^10
+package: Custom
+dependencies:
+  - webform:webform

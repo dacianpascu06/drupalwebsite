@@ -1,0 +1,14 @@
+/sites/*/files
+/sites/*/settings.php
+/vendor/
+/node_modules/
+/tmp/
+/web/sites/*/private
+*.log
+*.cache
+*.sql
+*.tar.gz
+*.zip
+.DS_Store
+
+/.gitattributes

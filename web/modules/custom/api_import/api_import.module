@@ -1,0 +1,65 @@
+<?php
+
+use Drupal\node\Entity\Node;
+
+/**
+  hook into cron
+ */
+function api_import_cron()
+{
+  \Drupal::logger('api_import')->notice('API Import Cron started.');
+
+  $data = _api_import_fetch_data();
+
+  foreach ($data as $user) {
+    $node_id = \Drupal::entityQuery('node')
+      ->condition('type', 'api')
+      ->condition('field_email', $user['email'])
+      ->accessCheck(FALSE)
+      ->execute();
+
+    if (!empty($node_id)) {
+      \Drupal::logger('api_import')->notice(' User: @name already exists', ['@name' => $user['name']]);
+      continue;
+    }
+
+    Node::create([
+      'type' => 'api',
+      'title' => $user['name'],
+      'field_name' => $user['name'],
+      'field_email' => $user['email'],
+      'field_city' => $user['address']['city'],
+      'status' => 1,
+    ])->save();
+    \Drupal::logger('api_import')->notice('Created new node for name: @name', ['@name' => $user['name']]);
+  }
+
+  \Drupal::logger('api_import')->notice('API Cron completed');
+}
+
+function _api_import_fetch_data()
+{
+  $cache_key = 'api_import_data';
+  $cache = \Drupal::cache()->get($cache_key);
+
+  if ($cache) {
+    \Drupal::logger('api_import')->notice('Using cached API data.');
+    return $cache->data;
+  }
+
+  try {
+    $client = \Drupal::httpClient();
+    $response = $client->get('https://jsonplaceholder.typicode.com/users', [
+      'headers' => ['Accept' => 'application/json'],
+    ]);
+    $data = json_decode($response->getBody(), TRUE);
+
+    \Drupal::logger('api_import')->notice('fetched users');
+
+    \Drupal::cache()->set($cache_key, $data, time() + 6 * 3600);
+    return $data;
+  } catch (\Exception) {
+    \Drupal::logger('api_import')->error('API fetch failed');
+    return [];
+  }
+}
